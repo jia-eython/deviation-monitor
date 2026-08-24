@@ -1,0 +1,31 @@
+# ═══════════════════════════════════════════════════════════════
+# 回撤偏离监控 定时任务示例（Linux cron）
+# 安装方法：把下面几行粘贴进 crontab -e（注意把路径改成你的真实路径）
+# 查看：crontab -l    实时看日志：tail -f results/deviation.log
+# ═══════════════════════════════════════════════════════════════
+#
+# 【路径说明（务必替换成你的真实路径）】
+#   项目目录    : 把下面 /home/you/量化/DeviationMonitor 换成 pwd 得到的真实路径
+#   Python      : 优先用 AutoFolio 的 venv（如果存在 /home/you/量化/AutoFolio/.venv/bin/python）
+#                 没有 venv 就用系统 python3（需已装 pandas/requests/yfinance/akshare）
+#
+# ── 每 2 小时整点：真正检测并推送（读/写状态文件，带进程锁）────────
+# 只推微信提示，绝不自动下单
+0 */2 * * * cd /home/you/量化/DeviationMonitor && /usr/bin/python3 deviation_monitor.py --push >> results/cron_deviation.log 2>&1
+#
+# ── 每天 09:35（A股盘中）：dry-run 演练，不推送、不读写状态文件 ──
+# 用途：验证行情源/参数配置是否正常，不污染正式去重状态
+35 9 * * 1-5 cd /home/you/量化/DeviationMonitor && /usr/bin/python3 deviation_monitor.py --dry-run >> results/cron_deviation.log 2>&1
+#
+# ── 可选：每天 15:05（A股收盘后）复核一次 ────────────────────────
+5 15 * * 1-5 cd /home/you/量化/DeviationMonitor && /usr/bin/python3 deviation_monitor.py --dry-run >> results/cron_deviation.log 2>&1
+#
+# ── 可选：覆盖参数运行（命令行参数优先于 .env）────────────────────
+# 例：只看 SPY，用 30 日窗口、触发 6%、复位 3.5%
+# 0 */4 * * * cd /home/you/量化/DeviationMonitor && /usr/bin/python3 deviation_monitor.py --push --market us --symbols SPY --ref-high 30 --dd-threshold 0.06 --reset-threshold 0.035 >> results/cron_deviation.log 2>&1
+#
+# ── 说明 ────────────────────────────────────────────────────────
+# 1. --push 才推微信、才读/写状态文件（results/deviation_state.json）；
+#    --dry-run 只计算+写日志，绝不碰状态文件。
+# 2. 脚本内置进程锁（仅 --push 生效），cron 重叠调度不会重复推送。
+# 3. 服务器时区若不是北京时间，可参照 AutoFolio 的写法在 crontab 顶部加 CRON_TZ=Asia/Shanghai。
