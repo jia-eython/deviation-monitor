@@ -1,0 +1,13 @@
+# 本工程本地产物不入库
+.env
+.env.bak
+*.env.bak
+results/
+__pycache__/
+*.pyc
+*.log
+*.tar.gz
+*.zip
+
+# 部署包内的密钥压缩包绝不上传（含 PUSHPLUS_TOKEN / 微牛沙盒密钥）
+deviation_monitor_linux_deploy.tar.gz
